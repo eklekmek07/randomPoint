@@ -2,10 +2,6 @@ from random import randint
 import pygame
 pygame.init()
 
-import ctypes
-user32 = ctypes.windll.user32
-screensize = (user32.GetSystemMetrics(1), user32.GetSystemMetrics(0))
-
 BLACK = (0,0,0)
 WHITE = (255,255,255)
 GREEN = (0,255,0)
@@ -35,9 +31,8 @@ class Main:
         self.dots = [] #list that store dots
         self.links = []
 
-        for i in range(20):
+        for i in range(self.startingDot):
             self.createDot()
-
 
     def run(self): #mainloop
         clock = pygame.time.Clock()
@@ -50,8 +45,8 @@ class Main:
                     quit()
             #####LOGIC######
             self.linkCreator()
-            #self.createDot(50, 2)
-            #self.deletedot()
+            self.createDot(randint(30,80), 2)
+            #self.deleteDot()
             #####RENDER#####
             self.screen.fill((255,255,255)) #this is important because every frame need fresh background
             self.renderLine()
@@ -60,7 +55,7 @@ class Main:
             
             pygame.display.flip()
 
-    def displayText(self):
+    def displayText(self): #make oop friendly
         font = pygame.font.Font(None, 36)
         text = font.render(str(len(self.dots)), 1, (10, 10, 10))
         textpos = text.get_rect()
@@ -68,30 +63,40 @@ class Main:
         self.screen.blit(text, textpos)
     
     def linkCreator(self):
-        fakeDots = self.dots.copy()
-        dot1 = fakeDots.pop(randint(0, len(fakeDots)-1))
-        dot2 = fakeDots.pop(randint(0, len(fakeDots)-1))
-        self.createLine(dot1.pos, dot2.pos)
+        if len(self.dots) > 1:
+            fakeDots = self.dots.copy()
+            dot1 = fakeDots.pop(randint(0, len(fakeDots)-1))
+            dot2 = fakeDots.pop(randint(0, len(fakeDots)-1))
+            self.createLink(dot1, dot2)
 
     def createDot(self, minRange = 50, linkLimit = 2):
         pos = randint(self.screenBorderLimit, self.SIZE[x]-self.screenBorderLimit), randint(self.screenBorderLimit, self.SIZE[y]-self.screenBorderLimit)
         tempDot = Dot(pos, minRange, linkLimit, self.showRange)
         if self.canDotable(tempDot.pos, tempDot.minRange):
             self.dots.append(tempDot)
-    def createLine(self, pos1, pos2):
-        if self.canCreateLine:
-            self.links.append(Link(pos1, pos2))
+    def createLink(self, dot1, dot2):
+        mainLink = Link(dot1, dot2)
+        for link in self.links:
+            if not self.canCreateLink(mainLink, link):
+                return False
+        tempLink = Link(dot1, dot2)
+        dot1.links.append(tempLink)
+        self.links.append(tempLink)
+    
     def deleteDot(self): #can be changed to delete both lines and dots
         if len(self.dots) == 0: #failsafe in case there is not any dot to delete
-            return False
-        del self.dots[0]
+            return False 
+        self.dots[0].delete()
+    def checkLinks(self):
+        for link in self.links:
+            link.check()
 
     def renderDots(self):
         for dot in self.dots:
             dot.render(self.screen)          
     def renderLine(self):
         for line in self.links:
-            pygame.draw.aaline(self.screen, BLUE, line.pos1, line.pos2)
+            line.render(self.screen)
 
     def canDotable(self, pos, minRange):
         if len(self.dots) == 0:
@@ -101,56 +106,62 @@ class Main:
             if distance < dot.minRange + minRange:
                 return False
         return True    
-    def canCreateLine(self, line1, line2):
-        D  = line1.A * line2.B - line1.B * line2.A
-        #Dx = line1.C * line2.B - line1.B * line2.C for detecting the cord in future
-        #Dy = line1.A * line2.C - line1.C * line2.A
+    def canCreateLink(self, link1, link2):
+        D  = link1.A * link2.B - link1.B * link2.A
         if D != 0:
-            #x = Dx / D
-            #y = Dy / D
-            return True #x,y
+            print("döner")
+            return True
         return False
 
 
 class Dot:
-    def __init__(self, pos, minRange, linkLimit, showRange):
+    def __init__(self, pos, minRange, linkLimit, showRange = True):
         self.pos = pos
         self.minRange = minRange
         self.maxRange = None
         self.linkLimit = linkLimit
-        self.linkedDots = []
-        self.showRange = True
+        self.showRange = showRange
+        self.links = []
 
     def render(self, screen):
         pygame.draw.circle(screen, BLACK, (self.pos[x], self.pos[y]), 2, 1)
         if self.showRange:
             pygame.draw.circle(screen, RED, (self.pos[x], self.pos[y]), self.minRange, 1)
 
+    def delete(self):
+        for link in self.links:
+            link.live = False
+
 class Link:
-    def __init__(self, pos1, pos2):
-        self.pos1 = pos1
-        self.pos2 = pos2
-        self.color = None
-        self.distance = None
+    def __init__(self, dot1, dot2, color = BLUE):
+        self.live = True #Link do not live if on or two of dots disappear and delete itself
+        
+        self.pos1 = dot1.pos
+        self.pos2 = dot2.pos
+        self.connectedDots = []
+        self.connectedDots.append(dot1)
+        self.connectedDots.append(dot2)
+        
+        self.color = color
         self.width = None
-        self.A = pos2[y] - pos1[y]
-        self.B = pos2[x] - pos1[x]
-        #self.C = -((pos1[x] * pos2[y]) - (pos2[x] * pos1[y])) in the future
+        
+        self.A = self.pos2[y] - self.pos1[y]
+        self.B = self.pos2[x] - self.pos1[x]
+        #self.C = -((pos1[x] * pos2[y]) - (pos2[x] * pos1[y])) in the future for kesişim..
+        self.distance = None
+
+    def check(self): #not useful for now
+        self.pos1 = dot1.pos
+        self.pos2 = dot2.pos        
+        self.distance = None #diy calculate the distance between connected dots
+        if self.connectedDots >= 1:
+            self.live = False    
+
+    def render(self, screen):
+        if self.live:
+            pygame.draw.aaline(screen, self.color, self.pos1, self.pos2)
 
 main = Main()
 main.run()
 
-def intersection(line1, line2):
-    D  = line1[0] * line2[1] - line1[1] * line2[0]
-    Dx = line1[2] * line2[1] - line1[1] * line2[2]
-    Dy = line1[0] * line2[2] - line1[2] * line2[0]
-    if D != 0:
-        x = Dx / D
-        y = Dy / D
-        return x,y
-    else:
-        return False
-
-line1 = line([0,4], [2,2])
-line2 = line([2,3], [0,4])
 
