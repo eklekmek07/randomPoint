@@ -3,24 +3,16 @@ It is a fun project, I mean literally fun. Yet, someday, it will be a engine for
 
 Project start with a idea that can we create random dots with a electric beam that do not cross each others area.
 
-#Features
-
-*dots can be selected with a mouse click
-
-*selected dots can move with arrow keys
-
+#Features <br>
+*dots can be selected with a mouse click <br>
+*selected dots can move with arrow keys <br>
 *changeable dot creation
  
 #Known Bugs
-
-lines cross each other 
-
+lines cross each other <br>
 (as far as I know)
 
 #Planned Things
-
-fix the damn lines
-
-modify dots to sprite modules
-
-moving a player maybe
+fix the damn lines <br>
+modify dots to sprite modules <br>
+moving player maybe <br>
