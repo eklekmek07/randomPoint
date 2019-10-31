@@ -14,24 +14,28 @@ y = 1
 
 class Main:
     def __init__(self):
+        #screenStuff
         self.SIZE = [800,600] #screen size
         self.screen = pygame.display.set_mode((self.SIZE[0], self.SIZE[1])) #screen
-        pygame.display.set_caption('Dot Simulation') #windows name
-        self.screenFPS = 1 #RenderedFramePerSecond
+        pygame.display.set_caption('Dot Simulation') #windows name 
         self.screen.fill(WHITE) #screen background
-        
+        self.screenFPS = 60 #RenderedFramePerSecond       
+        self.fpsCount = 0
+        #dotCreation
         self.addedDotPF = 2 #added dot per frame
-        self.deletedDotPF = 1
+        self.deletedDotPF = 0
         self.startingDot = 20
         self.screenBorderLimit = 20 #set the avaliable zone for dot how far from the window border
-        
+        self.cratedLinePF = 1
+        #dotSetings
         self.showRange = True  #for debuging purpose
         self.showLines = True
-
+        #memory
         self.dots = [] #list that store dots
         self.links = []
-
-        for i in range(10):
+        #mouseStuff
+        self.selectedDots = []
+        for i in range(self.startingDot):
             self.createDot(randint(30,80), 2)
             self.randomDotSelector()
 
@@ -39,26 +43,56 @@ class Main:
         clock = pygame.time.Clock()
         loop = True
         while loop:
+            self.fpsCount += 1
+            if self.fpsCount > self.screenFPS:
+                self.fpsCount = 0
             clock.tick(self.screenFPS)
+            print(clock.tick(self.screenFPS)) #testing can the system keep up
             for event in pygame.event.get():
                 if event.type == pygame.QUIT: #pygame quit windows stuff
                     pygame.quit() 
                     quit()
-            #####LOGIC######
-            self.deleteDot()
-            self.createDot(randint(30,80), 2)
-            self.createDot(randint(30,80), 2)
-            self.createDot(randint(30,80), 2)
-            self.randomDotSelector()
-            self.randomDotSelector()
-            self.randomDotSelector()
-            #####RENDER#####
-            self.screen.fill((255,255,255)) #this is important because every frame need fresh background
+                if event.type == pygame.MOUSEBUTTONUP:
+                    self.mousePos = pygame.mouse.get_pos()
+                    self.mouseSelection()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_LEFT:
+                        for dot in self.dots:
+                            if dot.selected:
+                                dot.pos[x] -= 10
+                    if event.key == pygame.K_RIGHT:
+                        for dot in self.dots:
+                            if dot.selected:
+                                dot.pos[x] += 10
+            #########LOGIC##########
+ 
+            ######DOT_CREATION######
+            if self.fpsCount == 0:
+                for i in range(self.deletedDotPF):
+                    self.deleteDot()
+                for i in range(self.addedDotPF):
+                    self.createDot(randint(30,80), 2)
+                for i in range(self.cratedLinePF):
+                    self.randomDotSelector()
+
+            #########RENDER#########
+            self.screen.fill((WHITE)) #this is important because every frame need fresh background
             self.renderLine()
             self.renderDots()
             self.displayText()
                                 
             pygame.display.flip()
+
+    def mouseSelection(self): #yap bunu make
+        for dot in self.dots:
+            if dot.posInRange(self.mousePos):
+                if dot.selected:
+                    dot.rangeColor = RED
+                    dot.selected = False
+                else:
+                    
+                    dot.rangeColor = GREEN
+                    dot.selected = True
 
     def displayText(self): #make oop friendly
         font = pygame.font.Font(None, 36)
@@ -135,21 +169,30 @@ class Main:
 
 class Dot:
     def __init__(self, pos, minRange, linkLimit, showRange = True):
-        self.pos = pos
+        self.pos = list(pos)
         self.minRange = minRange
-        self.maxRange = None
         self.linkLimit = linkLimit
         self.showRange = showRange
         self.links = []
+        self.rangeColor = RED
+        self.selected = False
 
+    def update(self):
+        pass
     def render(self, screen):
         pygame.draw.circle(screen, BLACK, (self.pos[x], self.pos[y]), 2, 1)
         if self.showRange:
-            pygame.draw.circle(screen, RED, (self.pos[x], self.pos[y]), self.minRange, 1)
+            pygame.draw.circle(screen, self.rangeColor, (self.pos[x], self.pos[y]), self.minRange, 1)
 
     def delete(self):
         for link in self.links:
             link.live = False
+    
+    def posInRange(self, pos):
+        distanceToPos = (((self.pos[x] - pos[x])**2) + ((self.pos[y] - pos[y])**2))**0.5
+        if distanceToPos < self.minRange:
+            return True
+        return False
 
 class Link:
     def __init__(self, dot1, dot2, color = BLUE):
@@ -179,7 +222,6 @@ class Link:
     
     def render(self, screen):
         self.check()
-        print(self.live)
         if self.live:
             pygame.draw.aaline(screen, self.color, self.dot1.pos, self.dot2.pos)
 
