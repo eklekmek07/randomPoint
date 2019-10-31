@@ -64,6 +64,14 @@ class Main:
                         for dot in self.dots:
                             if dot.selected:
                                 dot.pos[x] += 10
+                    if event.key == pygame.K_UP:
+                        for dot in self.dots:
+                            if dot.selected:
+                                dot.pos[y] -= 10
+                    if event.key == pygame.K_DOWN:
+                        for dot in self.dots:
+                            if dot.selected:
+                                dot.pos[y] += 10                    
             #########LOGIC##########
  
             ######DOT_CREATION######
@@ -76,6 +84,7 @@ class Main:
                     self.randomDotSelector()
 
             #########RENDER#########
+
             self.screen.fill((WHITE)) #this is important because every frame need fresh background
             self.renderLine()
             self.renderDots()
@@ -116,8 +125,10 @@ class Main:
     def createDot(self, minRange = 50, linkLimit = 2):
         pos = randint(self.screenBorderLimit, self.SIZE[x]-self.screenBorderLimit), randint(self.screenBorderLimit, self.SIZE[y]-self.screenBorderLimit)
         tempDot = Dot(pos, minRange, linkLimit, self.showRange)
-        if self.canDotable(tempDot.pos, tempDot.minRange):
+        if tempDot.canForm(self.dots):
             self.dots.append(tempDot)
+        #if self.canDotable(tempDot.pos, tempDot.minRange):
+        #    self.dots.append(tempDot)
     
     def createLink(self, dot1, dot2):
         tempLink = Link(dot1, dot2)
@@ -149,12 +160,6 @@ class Main:
             if distance < dot.minRange + minRange:
                 return False
         return True   
- 
-    """def canCreateLink(self, link1, link2):
-        D  = link1.A * link2.B - link1.B * link2.A
-        if D != 0:
-            return True
-        return False"""
 
     def linkIntersection(self, link1, link2):
         D  = link1.A * link2.B - link1.B * link2.A
@@ -175,10 +180,9 @@ class Dot:
         self.showRange = showRange
         self.links = []
         self.rangeColor = RED
+        self.oldPos = self.pos
         self.selected = False
 
-    def update(self):
-        pass
     def render(self, screen):
         pygame.draw.circle(screen, BLACK, (self.pos[x], self.pos[y]), 2, 1)
         if self.showRange:
@@ -193,6 +197,18 @@ class Dot:
         if distanceToPos < self.minRange:
             return True
         return False
+
+    def canForm(self, otherDots):
+        if len(otherDots) == 0:
+            return True
+        for dot in otherDots:
+            distance = (((self.pos[x] - dot.pos[x])**2) + ((self.pos[y] - dot.pos[y])**2)) ** 0.5
+            if distance < dot.minRange + self.minRange:
+                return False
+        return True
+
+    def canMove(self):
+        pass
 
 class Link:
     def __init__(self, dot1, dot2, color = BLUE):
