@@ -22,11 +22,11 @@ class Main:
         self.screenFPS = 60 #RenderedFramePerSecond       
         self.fpsCount = 0
         #dotCreation
-        self.addedDotPF = 2 #added dot per frame
+        self.addedDotPF = 0 #added dot per frame
         self.deletedDotPF = 0
-        self.startingDot = 20
+        self.startingDot = 3
         self.screenBorderLimit = 20 #set the avaliable zone for dot how far from the window border
-        self.cratedLinePF = 1
+        self.cratedLinePF = 0
         #dotSetings
         self.showRange = True  #for debuging purpose
         self.showLines = True
@@ -37,7 +37,6 @@ class Main:
         self.selectedDots = []
         for i in range(self.startingDot):
             self.createDot(randint(30,80), 2)
-            self.randomDotSelector()
 
     def run(self): #mainloop
         clock = pygame.time.Clock()
@@ -47,7 +46,7 @@ class Main:
             if self.fpsCount > self.screenFPS:
                 self.fpsCount = 0
             clock.tick(self.screenFPS)
-            print(clock.tick(self.screenFPS)) #testing can the system keep up
+            #print(clock.tick(self.screenFPS)) #testing can the system keep up
             for event in pygame.event.get():
                 if event.type == pygame.QUIT: #pygame quit windows stuff
                     pygame.quit() 
@@ -56,24 +55,20 @@ class Main:
                     self.mousePos = pygame.mouse.get_pos()
                     self.mouseSelection()
                 if event.type == pygame.KEYDOWN:
+                    if event.key ==pygame.K_p: #Make Line by Hand
+                        self.createLinkByChoosen()
                     if event.key == pygame.K_LEFT:
-                        for dot in self.dots:
-                            if dot.selected:
-                                dot.pos[x] -= 10
+                        for dot in self.selectedDots:
+                            dot.pos[x] -= 10
                     if event.key == pygame.K_RIGHT:
-                        for dot in self.dots:
-                            if dot.selected:
-                                dot.pos[x] += 10
+                        for dot in self.selectedDots:
+                            dot.pos[x] += 10
                     if event.key == pygame.K_UP:
-                        for dot in self.dots:
-                            if dot.selected:
-                                dot.pos[y] -= 10
+                        for dot in self.selectedDots:
+                            dot.pos[y] -= 10
                     if event.key == pygame.K_DOWN:
-                        for dot in self.dots:
-                            if dot.selected:
-                                dot.pos[y] += 10                    
-            #########LOGIC##########
- 
+                        for dot in self.selectedDots:
+                            dot.pos[y] += 10                    
             ######DOT_CREATION######
             if self.fpsCount == 0:
                 for i in range(self.deletedDotPF):
@@ -81,10 +76,9 @@ class Main:
                 for i in range(self.addedDotPF):
                     self.createDot(randint(30,80), 2)
                 for i in range(self.cratedLinePF):
-                    self.randomDotSelector()
+                    self.linkCreate()
 
             #########RENDER#########
-
             self.screen.fill((WHITE)) #this is important because every frame need fresh background
             self.renderLine()
             self.renderDots()
@@ -92,16 +86,17 @@ class Main:
                                 
             pygame.display.flip()
 
-    def mouseSelection(self): #yap bunu make
+    def mouseSelection(self):
         for dot in self.dots:
             if dot.posInRange(self.mousePos):
                 if dot.selected:
                     dot.rangeColor = RED
                     dot.selected = False
+                    self.selectedDots.remove(dot)
                 else:
-                    
                     dot.rangeColor = GREEN
                     dot.selected = True
+                    self.selectedDots.append(dot)
 
     def displayText(self): #make oop friendly
         font = pygame.font.Font(None, 36)
@@ -115,22 +110,26 @@ class Main:
         text = font.render(str(round(pos[0],round(pos[1]))), 1, (10, 10, 10))
         self.screen.blit(text, pos)
 
-    def randomDotSelector(self):
-        if len(self.dots) > 1: #failsafe for not sellectable dot : out of index error
-            fakeDots = self.dots.copy()
-            dot1 = fakeDots.pop(randint(0, len(fakeDots)-1))
-            dot2 = fakeDots.pop(randint(0, len(fakeDots)-1))
-            self.createLink(dot1, dot2)
+    def createLinkByChoosen(self):
+        if len(self.selectedDots) < 1:
+            return False
+        tempList = self.selectedDots.copy()
+        for dot1 in tempList:
+            tempList.remove(dot1)   
+            for dot2 in tempList:
+                tempLink = Link(dot1, dot2)
+                dot1.links.append(tempLink)
+                dot2.links.append(tempLink)
+                self.links.append(tempLink)
+        return True
 
     def createDot(self, minRange = 50, linkLimit = 2):
         pos = randint(self.screenBorderLimit, self.SIZE[x]-self.screenBorderLimit), randint(self.screenBorderLimit, self.SIZE[y]-self.screenBorderLimit)
         tempDot = Dot(pos, minRange, linkLimit, self.showRange)
         if tempDot.canForm(self.dots):
             self.dots.append(tempDot)
-        #if self.canDotable(tempDot.pos, tempDot.minRange):
-        #    self.dots.append(tempDot)
     
-    def createLink(self, dot1, dot2):
+    def createLinkByAI(self, dot1, dot2):
         tempLink = Link(dot1, dot2)
         for link in self.links:
             if not self.linkIntersection(tempLink, link):
@@ -138,7 +137,7 @@ class Main:
         dot1.links.append(tempLink)
         dot2.links.append(tempLink)
         self.links.append(tempLink)
-   
+
     def deleteDot(self): #can be changed to delete both lines and dots
         if len(self.dots) == 0: #failsafe in case there is not any dot to delete
             return False 
@@ -227,13 +226,11 @@ class Link:
 
     def check(self): #not useful for now      
         self.distance = (((self.dot1.pos[x] - self.dot2.pos[x])**2) + ((self.dot1.pos[y] - self.dot2.pos[y])**2))**0.5
-        if self.distance > 500:
+        if self.distance > 943:
             self.color = RED
-        elif self.distance > 200:
-            self.color = BLUE
         else:
-            self.color = GREEN
-        if len(self.connectedDots) <= 1:
+            self.color = (self.distance / 3.7, 255 - self.distance/3.7 , 0)       
+        if len(self.connectedDots) <= 1: #if line has no connected dots line die
             self.live = False    
     
     def render(self, screen):
@@ -245,3 +242,8 @@ main = Main()
 main.run()
 
 
+def ccw(A,B,C):
+	return (C.pos[y]-A.pos[y])*(B.pos[x]-A.pos[x]) > (B.pos[y]-A.pos[y])*(C.pos[x]-A.pos[x])
+
+def intersect(A,B,C,D):
+	return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D)
