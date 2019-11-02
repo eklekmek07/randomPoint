@@ -8,11 +8,12 @@ Project start with a idea that can we create random dots with a electric beam th
 *selected dots can move with arrow keys <br>
 *changeable dot creation
  
-#Known Bugs
+#Known Bugs <br>
 lines cross each other <br>
+lines keep rendering when selected dots delete
 (as far as I know)
 
-#Planned Things
+#Planned Things <br>
 fix the damn lines <br>
 modify dots to sprite modules <br>
 moving player maybe <br>
